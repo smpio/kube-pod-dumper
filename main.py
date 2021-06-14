@@ -51,8 +51,10 @@ def init_repo(args):
         os.makedirs(args.repo_path, exist_ok=True)
         run_git(args.repo_path, 'init')
 
-    run_git(args.repo_path, 'config', 'user.email', args.git_email)
-    run_git(args.repo_path, 'config', 'user.name', args.git_username)
+    if args.git_email:
+        run_git(args.repo_path, 'config', 'user.email', args.git_email)
+    if args.git_username:
+        run_git(args.repo_path, 'config', 'user.name', args.git_username)
 
 
 class WatcherThread(SupervisedThread):
