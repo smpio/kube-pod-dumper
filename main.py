@@ -22,7 +22,7 @@ def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('repo_path')
     arg_parser.add_argument('--api-url')
-    arg_parser.add_argument('--in-cluster', type=bool, default=False)
+    arg_parser.add_argument('--in-cluster', action=argparse.BooleanOptionalAction)
     args = arg_parser.parse_args()
 
     if args.api_url:
