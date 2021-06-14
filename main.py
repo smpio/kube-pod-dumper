@@ -1,4 +1,5 @@
 import os
+import time
 import yaml
 import queue
 import logging
@@ -13,6 +14,7 @@ from utils.kubernetes.watch import KubeWatcher, WatchEventType
 from utils.signal import install_shutdown_signal_handlers
 
 log = logging.getLogger(__name__)
+PUSH_INTERVAL = 5 * 60
 
 
 def main():
@@ -25,6 +27,7 @@ def main():
     arg_parser.add_argument('--git-email')
     arg_parser.add_argument('--git-username')
     arg_parser.add_argument('--in-cluster', action=argparse.BooleanOptionalAction)
+    arg_parser.add_argument('--enable-push', action=argparse.BooleanOptionalAction)
     args = arg_parser.parse_args()
 
     if args.api_url:
@@ -42,6 +45,8 @@ def main():
     threads = SupervisedThreadGroup()
     threads.add_thread(WatcherThread(q))
     threads.add_thread(HandlerThread(q, args.repo_path))
+    if args.enable_push:
+        threads.add_thread(PushThread(args.repo_path))
     threads.start_all()
     threads.wait_any()
 
@@ -113,6 +118,21 @@ class HandlerThread(SupervisedThread):
 
     def handle_delete(self, file_path, pod):
         os.remove(file_path)
+
+
+class PushThread(SupervisedThread):
+    def __init__(self, repo_path):
+        super().__init__()
+        self.repo_path = repo_path
+
+    def run_supervised(self):
+        while True:
+            log.info('Sleeping %d seconds before push', PUSH_INTERVAL)
+            time.sleep(PUSH_INTERVAL)
+            try:
+                run_git(self.repo_path, 'push')
+            except Exception:
+                log.exception('Failed to push')
 
 
 def run_git(repo_path, *args):
