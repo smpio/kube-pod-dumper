@@ -22,6 +22,8 @@ def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('repo_path')
     arg_parser.add_argument('--api-url')
+    arg_parser.add_argument('--git-email')
+    arg_parser.add_argument('--git-username')
     arg_parser.add_argument('--in-cluster', action=argparse.BooleanOptionalAction)
     args = arg_parser.parse_args()
 
@@ -34,7 +36,7 @@ def main():
     else:
         kubernetes.config.load_kube_config()
 
-    init_repo(args.repo_path)
+    init_repo(args)
 
     q = queue.Queue()
     threads = SupervisedThreadGroup()
@@ -44,13 +46,13 @@ def main():
     threads.wait_any()
 
 
-def init_repo(repo_path):
-    if os.path.exists(os.path.join(repo_path, '.git')):
-        log.info('Repo already initialized')
-        return
+def init_repo(args):
+    if not os.path.exists(os.path.join(args.repo_path, '.git')):
+        os.makedirs(args.repo_path, exist_ok=True)
+        run_git(args.repo_path, 'init')
 
-    os.makedirs(repo_path, exist_ok=True)
-    run_git(repo_path, 'init')
+    run_git(args.repo_path, 'config', 'user.email', args.git_email)
+    run_git(args.repo_path, 'config', 'user.name', args.git_username)
 
 
 class WatcherThread(SupervisedThread):
